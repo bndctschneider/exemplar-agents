@@ -82,23 +82,25 @@ class Agent:
         positions = np.arange(1,101,1,dtype=int)
         self.activations = np.exp(-0.2*positions)
         
-    def choose_rword(self):
-        wc_index = random.randint(0, 3)# randomly select word cat index
+    def choose_rword(self,wc_index):
+        #wc_index = random.randint(0, 3)# randomly select word cat index
         #print('Produced cat: ',wc_index)
         word_cat = self.space[wc_index] # select word cat to pick word from
         choice_probs = self.activations/self.activations.sum() # turning activations into prob distr
         random_word_idx = np.random.choice(len(word_cat),1,p=choice_probs) # sample index given prob distr
         random_word = word_cat[random_word_idx] # pick word from chosen word cat with chosen index
         #print('random word: ', random_word)
+        
+        # Ensure that no exemplar [0,0] is picked
         if random_word.all()!=0:
             #print('not all 0')
             return random_word.flatten()
         else:
             #print('all 0')
-            return self.choose_rword()
+            return self.choose_rword(wc_index)
                 
-    def produce(self):
-        random_word = self.choose_rword()
+    def produce(self,wc_index):
+        random_word = self.choose_rword(wc_index)
         noise = np.random.normal(0,3,1) # Random noise, mean 0 std 3, used during output creation
         noise = np.absolute(noise)
         rw_noise = np.where(random_word<50,random_word+noise,random_word-noise) # if smaller 50, add noise, else substract
@@ -135,15 +137,25 @@ class Agent:
         
 def pp_loop(iterations,agent1,agent2):
     for i in range(iterations):
-        agent2.receive(agent1.produce())
-        agent1.receive(agent2.produce())
+        # Agent 1 produces, agent 2 receives
+        agent2.receive(agent1.produce(0))
+        agent2.receive(agent1.produce(1))
+        agent2.receive(agent1.produce(2))
+        agent2.receive(agent1.produce(3))
+        
+        # Agent 2 produces, agent 1 receives
+        agent1.receive(agent2.produce(0))
+        agent1.receive(agent2.produce(1))
+        agent1.receive(agent2.produce(2))
+        agent1.receive(agent2.produce(3))
+        
         agent2.plot_space()
     print(agent1.space)
     
     
         
-
-agent1 = Agent('Agent 1')
-agent2 = Agent('Agent 2')
-pp_loop(100,agent1,agent2)
+if __name__=='__main__':
+    agent1 = Agent('Agent 1')
+    agent2 = Agent('Agent 2')
+    pp_loop(100,agent1,agent2)
 
