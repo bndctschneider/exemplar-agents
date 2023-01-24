@@ -1,30 +1,92 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jan  3 08:17:34 2023
-
-@author: bened
-"""
-
 import numpy as np
-from numpy import dot
-from numpy.linalg import norm
 import matplotlib.pyplot as plt
-import random
 
 # To-Do
-# find out production/perception order (paper) -> last sentence p.37
-# investigate why last cat almost never chosen in perception SIMILARITY METRIC?
-# how is exemplar space seeded
-# Understand population vectors for similarity bias
+# how is exemplar space seeded?
+# population vectors for similarity bias?
+
+def mink_r_metric(i,j,r=2):
+    '''
+    Minkowski r-metric, see "Attention, Similarity, and
+    the Identification-Categorization Relationship" (p.2, Eq 3, Nosofsky, 1986)
+
+    Parameters
+    ----------
+    i : np.array (2,)
+        exemplar i.
+    j : np.array (2,)
+        exemplar j.
+    r : int
+        1: city block metric, 2: euclidian distance.
+
+    Returns
+    -------
+    float
+        distance score.
+
+    '''
+    assert i.shape == (2,)
+    assert j.shape == (2,)
+    return np.sum(np.absolute(i-j))**1/r
 
 
+def eta_dist(i,j,k=1):
+    '''
+    Eta distance, see "Attention, Similarity, and
+    the Identification-Categorization Relationship" (p.2, Eq 4a&b, Nosofsky, 1986).
+    
+    In "Lexical contrast maintenance and the organization of sublexical contrast systems" (Wedel,2012)
+    there seems to be an extension with a scaling factor k set to 0.2.
 
-def cos_sim(a,b):
-    if a.all()==0 or b.all()==0: # ensuring no division by 0
-        cos_sim = -1
-    else:
-        cos_sim = dot(a, b)/(norm(a)*norm(b))
-    return cos_sim
+    Parameters
+    ----------
+    i : np.array (2,)
+        exemplar i.
+    j : np.array (2,)
+        exemplar j.
+    k : float
+        scaling factor from Wedel(2012), appendix,p.36, Eq 1.
+
+    Returns
+    -------
+    float
+        distance score.
+
+    '''
+    assert i.shape == (2,)
+    assert j.shape == (2,)
+    return np.exp(-k*mink_r_metric(i,j))
+
+
+def word_cat_sim(i,word_cat):
+    '''
+    Numerator Eq 5, p.2, Nosokfsky(1986).
+    
+    MISSING: bias b_J from Nosofsky (1986).
+
+    Parameters
+    ----------
+    i : np.array (2,)
+        target exemplar i.
+    word_cat : np.array (100,2)
+        array with all exemplars of word category.
+
+    Returns
+    -------
+    float
+        summed similarity between target exemplar and word cat.
+
+    '''
+    # Ignore init exemplars [0,0]
+    # As list
+    #J = [list(j) for j in word_cat if j[0]!=0 and j[1]!=0]
+    
+    # As array
+    J_flat = word_cat[word_cat != 0] #
+    J = np.reshape(J_flat,(-1,2))
+    
+    return np.sum(np.array([eta_dist(i,j) for j in J]))
+
 
 def insert_word(space,word_cat,word):
     '''
@@ -105,24 +167,13 @@ class Agent:
         noise = np.absolute(noise)
         rw_noise = np.where(random_word<50,random_word+noise,random_word-noise) # if smaller 50, add noise, else substract
         return rw_noise
-    
+        
     def receive(self,word):
-        max_sim = 0
-        max_ind = None
-        #print('Recieved word: ',word)
-        for ind, word_cat in enumerate(self.space):
-            #print('ind ',ind)
-            for w in word_cat:
-                sim = cos_sim(word, w)
-                if sim > max_sim and not np.array_equal(word, w):
-                    max_word = w
-                    max_sim = sim
-                    max_ind = ind
-        #print('Highest sim to: ',max_word)
-        #print('Store in word category: ',self.space[max_ind])
-        #print('max ind',max_ind)
-        self.space = insert_word(self.space, max_ind, word)
-        #print(self.space)
+        cat_sims = np.array([word_cat_sim(word, wc) for wc in self.space])
+        cs_sum = np.sum(cat_sims) # Nosofsky(1986),p.2,Eq 5, denominator
+        wc_probs = np.array([cs/cs_sum for cs in cat_sims])
+        max_cat = np.argmax(wc_probs)
+        self.space = insert_word(self.space, max_cat, word)
                 
     def plot_space(self):
         x = self.space[:,:,0].flatten()
@@ -133,7 +184,6 @@ class Agent:
         plt.title(self.name)
         plt.show()
         
-    
         
 def pp_loop(iterations,agent1,agent2):
     for i in range(iterations):
