@@ -82,7 +82,7 @@ def word_cat_sim(i,word_cat):
     #J = [list(j) for j in word_cat if j[0]!=0 and j[1]!=0]
     
     # As array
-    J_flat = word_cat[word_cat != 0] #
+    J_flat = word_cat[word_cat != 0]
     J = np.reshape(J_flat,(-1,2))
     
     return np.sum(np.array([eta_dist(i,j) for j in J]))
@@ -160,13 +160,52 @@ class Agent:
         else:
             #print('all 0')
             return self.choose_rword(wc_index)
+        
+    def p_vec(self,word,wc_index,k = 0.2):
+        '''
+        Attempt to implement population vector formula from Wedel(2012), appendix, p.36, Eq 1.
+
+        Parameters
+        ----------
+        word : np.array (2,)
+            Production target x.
+        wc_index : int
+            word category index.
+
+        Returns
+        -------
+        p : np.array (2,)
+            population vector.
+
+        '''
+        p_num = np.array([0,0])
+        p_den = np.array([0,0])
+        x = word
+        Y = self.space[wc_index]
+        Y_flat = Y[Y != 0] # filtering out init exemplars [0,0]
+        Y = np.reshape(Y_flat,(-1,2))
+        a_ind = 0
+        for y in Y:
+            #a_ind = np.where(Y==y)[0][0] # we want only the first row index of np.where
+            # print('a_ind: ',a_ind) # potential problem: this gives only index of first match (see zero example)
+            
+            w = self.activations[a_ind]
+            p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
+            p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
+            #print('p_num: ',p_num)
+            #print('p_den: ',p_den)
+            a_ind+=1
+        p = p_num/p_den
+        return p
+            
                 
     def produce(self,wc_index):
-        random_word = self.choose_rword(wc_index)
+        prod_target = self.choose_rword(wc_index)
+        p_vector = self.p_vec(prod_target,wc_index)
         noise = np.random.normal(0,3,1) # Random noise, mean 0 std 3, used during output creation
         noise = np.absolute(noise)
-        rw_noise = np.where(random_word<50,random_word+noise,random_word-noise) # if smaller 50, add noise, else substract
-        return rw_noise
+        p_noise = np.where(p_vector<50,p_vector+noise,p_vector-noise) # if smaller 50, add noise, else substract
+        return p_noise
         
     def receive(self,word):
         cat_sims = np.array([word_cat_sim(word, wc) for wc in self.space])
