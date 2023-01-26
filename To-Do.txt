@@ -1,0 +1,52 @@
+########################
+#### Space seeding  ####
+########################
+ 
+ - modify agent class init method
+ - choose central point for each word cat: [25,25],[75,25],[25,75],[75,75]
+ - randomly generate some exemplars around that point to generate initial category 'cloud'
+ 
+ 
+############################
+#### Population vectors ####
+############################
+
+- we do have a class method (currently named p_vec) to generate a word level population vector -> maybe rename as p_vec_word or similar
+- we also need a method p_vec_seg (or similar) to generate a segment level population vector
+- if not mistaken, this should be relatively straightforward: instead of comparing target exemplar with every exemplar of word category, we compare it to all exemplars in the space? Need to think about if this is correct...
+- once we have both population vectors, we do a weighted average of them, with a 0.9 weight for the word level pop vec
+- in Andy's code it was just something like (9*pop_vec_word+pop_vec_seg)/10 or similar
+- this can be done within the 'produce' class method
+
+##########################
+#### Production noise ####
+##########################
+
+- appendix Eq 2 in Wedel(2012)
+- we do have sth similar in the produce method
+- maybe need to adjust more to Andy's formula
+
+####################
+#### Perception ####
+####################
+
+- currently we have Nosofsky's generalized context model (minus its bias term)
+- similar as in production, we need to take activation into account
+- implement it in Andy's way
+- implement the anti-ambiguity bias
+- if not mistaken, Andy picks random number between 0 and 1, and compares it with the highest similarity score of the categories. If random num > highest sim, discard, if random num < highest sim, store it
+
+##################
+#### Plotting ####
+##################
+
+- make the space plots prettier in generalized
+- also plot activation values of exemplars on a third dimension
+- Andy's suggestion: opaqueness of points as third dimension, or heatmap
+
+
+#######################
+#### Toggle biases ####
+#######################
+
+- nice to have some function/method to activate/deactivate the biases, for presentation but also to compare to Andy's vids to see if our model does the expected thing
