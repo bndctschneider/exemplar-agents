@@ -98,6 +98,29 @@ def insert_word(space,word_cat,word):
     space[word_cat] = new_wc
     return space
 
+
+def rand_exemplar(i):
+    '''
+    
+
+    Parameters
+    ----------
+    i : np.array (2,)
+        reference exemplar.
+
+    Returns
+    -------
+    exemplar close to reference exemplar.
+
+    '''
+    
+    assert i.shape == (2,)
+    
+    rvals = np.random.normal(scale=3.0, size=(2,))
+    
+    return i+rvals
+    
+
 class Agent:
     def __init__(self,name):
         
@@ -107,29 +130,25 @@ class Agent:
         self.space = np.zeros((4,100,2))
         
         #### Initialize word categories ####
-        # init word cat 1 == 'ba'
-        #self.space = insert_word(self.space, 0, [26,26])
-        #self.space = insert_word(self.space, 0, [25,25])
-        self.space = insert_word(self.space, 0, [2,2])
-        self.space = insert_word(self.space, 0, [1,1])
+        # init word cat 0 == 'ba'
+        wc0_ref = np.array([25,25])
+        for i in range (11):
+            self.space = insert_word(self.space, 0, rand_exemplar(wc0_ref))
         
-        # init word cat 2 == 'pa'
-        #self.space = insert_word(self.space, 1, [76,26])
-        #self.space = insert_word(self.space, 1, [75,25])
-        self.space = insert_word(self.space, 1, [99,2])
-        self.space = insert_word(self.space, 1, [98,1])
+        # init word cat 1 == 'pa'
+        wc1_ref = np.array([75,25])
+        for i in range (11):
+            self.space = insert_word(self.space, 1, rand_exemplar(wc1_ref))
         
-        # init word cat 3 == 'bi'
-        #self.space = insert_word(self.space, 2, [26,76])
-        #self.space = insert_word(self.space, 2, [25,75])
-        self.space = insert_word(self.space, 2, [2,99])
-        self.space = insert_word(self.space, 2, [1,98])
+        # init word cat 2 == 'bi'
+        wc2_ref = np.array([25,75])
+        for i in range (11):
+            self.space = insert_word(self.space, 2, rand_exemplar(wc2_ref))
         
-        # init word cat 4 == 'pi'
-        #self.space = insert_word(self.space, 3, [76,76])
-        #self.space = insert_word(self.space, 3, [75,75])
-        self.space = insert_word(self.space, 3, [99,99])
-        self.space = insert_word(self.space, 3, [98,98])
+        # init word cat 3 == 'pi'
+        wc3_ref = np.array([75,75])
+        for i in range (11):
+            self.space = insert_word(self.space, 3, rand_exemplar(wc3_ref))
         
         self.words = np.reshape(self.space,(self.space.shape[0]*self.space.shape[1],-1))
         self.segments_dim1 = self.space[:,:,0].flatten()
@@ -214,14 +233,25 @@ class Agent:
         max_cat = np.argmax(wc_probs)
         self.space = insert_word(self.space, max_cat, word)
                 
-    def plot_space(self):
-        x = self.space[:,:,0].flatten()
-        x = x[x!=0] # remove 0s for plotting
-        y = self.space[:,:,1].flatten()
-        y= y[y!=0] # remove 0s for plotting
-        plt.scatter(x,y)
+    def plot_space(self,act_alpha=False): 
+        fig, ax = plt.subplots()
+        plt.xlim([0, 100])
+        plt.ylim([0, 100])
+        z = self.activations
+        colors = ['r','g','b','y']
+        markers = ["v" , "o" , "," , "x"]
+        for i in range(4):
+            x = self.space[i,:,0].flatten()
+            x = x[x!=0] # remove 0s for plotting
+            y = self.space[i,:,1].flatten()
+            y= y[y!=0] # remove 0s for plotting
+            if act_alpha:
+                ax.scatter(x,y, color=colors[i],marker=markers[i],alpha=z)
+            else:
+                ax.scatter(x,y, color=colors[i],marker=markers[i])
         plt.title(self.name)
         plt.show()
+        
         
         
 def pp_loop(iterations,agent1,agent2):
@@ -246,5 +276,5 @@ def pp_loop(iterations,agent1,agent2):
 if __name__=='__main__':
     agent1 = Agent('Agent 1')
     agent2 = Agent('Agent 2')
-    pp_loop(100,agent1,agent2)
+    #pp_loop(100,agent1,agent2)
 

@@ -1,11 +1,6 @@
-########################
-#### Space seeding  ####
-########################
- 
- - modify agent class init method
- - choose central point for each word cat: [25,25],[75,25],[25,75],[75,75]
- - randomly generate some exemplars around that point to generate initial category 'cloud'
- 
+#################
+#### TO - DO ####
+#################
  
 ############################
 #### Population vectors ####
@@ -40,9 +35,10 @@
 #### Plotting ####
 ##################
 
-- make the space plots prettier in generalized
-- also plot activation values of exemplars on a third dimension
+- make the space plots prettier in general
+- also plot activation values of exemplars on a third dimension -> meh
 - Andy's suggestion: opaqueness of points as third dimension, or heatmap
+- Use different colors/shapes for each word category (as Andy did) -> DONE
 
 
 #######################
@@ -50,3 +46,23 @@
 #######################
 
 - nice to have some function/method to activate/deactivate the biases, for presentation but also to compare to Andy's vids to see if our model does the expected thing
+
+
+
+
+
+
+
+
+##############
+#### DONE ####
+##############
+
+########################
+#### Space seeding  ####
+########################
+ 
+ - modify agent class init method
+ - choose central point for each word cat: [25,25],[75,25],[25,75],[75,75]
+ - randomly generate some exemplars around that point to generate initial category 'cloud'
+ 
