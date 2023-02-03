@@ -3,14 +3,6 @@
 #################
 
 
-##########################
-#### Production noise ####
-##########################
-
-- appendix Eq 2 in Wedel(2012)
-- we do have sth similar in the produce method
-- maybe need to adjust more to Andy's formula
-
 ####################
 #### Perception ####
 ####################
@@ -48,6 +40,13 @@
 #### DONE ####
 ##############
 
+##########################
+#### Production noise ####
+##########################
+
+- appendix Eq 2 in Wedel(2012)
+- we do have sth similar in the produce method
+- maybe need to adjust more to Andy's formula
 
 ############################
 #### Population vectors ####

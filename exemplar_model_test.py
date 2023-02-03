@@ -263,14 +263,51 @@ class Agent:
                 a_ind+=1
         p = p_num/p_den
         return p
-            
+    
+    def default_b(self,p_vec):
+        '''
+        Our default for adding noise on the population_vector.
+
+        Parameters
+        ----------
+        p_vec : np.array (2,)
+            combined population vector.
+
+        Returns
+        -------
+        population vector with added noise towards center.
+
+        '''
+        noise = np.random.normal(0,3,1) # Random noise, mean 0 std 3, used during output creation
+        noise = np.absolute(noise)
+        p_noise = np.where(p_vec<50,p_vec+noise,p_vec-noise) # if smaller 50, add noise, else substract
+        return p_noise
+        
+    def wedel_b(self,p_vec,N=100,G=5000):
+        '''
+        Bias (noise) formula from Wedel(2012), appendix, p.36, Eq 2.
+
+        Parameters
+        ----------
+        p_vec : np.array (2,)
+            combined population vector.
+        N : int
+            number of points in the space. The default is 100.
+
+        Returns
+        -------
+        population vector with added noise towards center.
+
+        '''
+        b = (p_vec-N/2)**2/G
+        p_noise = np.where(p_vec<50,p_vec+b,p_vec-b) # if smaller 50, add noise, else substract
+        return p_noise
                 
     def produce(self,wc_index):
         prod_target = self.choose_rword(wc_index)
         p_vector = (9*self.p_vec_w(prod_target,wc_index)+self.p_vec_s(prod_target))/10
-        noise = np.random.normal(0,3,1) # Random noise, mean 0 std 3, used during output creation
-        noise = np.absolute(noise)
-        p_noise = np.where(p_vector<50,p_vector+noise,p_vector-noise) # if smaller 50, add noise, else substract
+        #p_noise = self.default_b(p_vector)
+        p_noise = self.wedel_b(p_vector)
         return p_noise
         
     def receive(self,word):
@@ -323,5 +360,5 @@ def pp_loop(iterations,agent1,agent2):
 if __name__=='__main__':
     agent1 = Agent('Agent 1')
     agent2 = Agent('Agent 2')
-    pp_loop(10,agent1,agent2)
+    pp_loop(400,agent1,agent2)
 
