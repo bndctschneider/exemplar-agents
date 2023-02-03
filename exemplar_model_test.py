@@ -1,10 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# To-Do
-# how is exemplar space seeded?
-# population vectors for similarity bias?
-
 def mink_r_metric(i,j,r=2):
     '''
     Minkowski r-metric, see "Attention, Similarity, and
@@ -92,6 +88,18 @@ def insert_word(space,word_cat,word):
     '''
     Insert word in specified word_category in exemplar space.
     Insert at first position, delete last.
+    
+    Parameters
+    ----------
+    space : np.array (4,100,2)
+        exemplar space.
+    word_cat : np.array (100,2)
+        array with all exemplars of word category.
+
+    Returns
+    -------
+    np.array (4,100,2)
+        new space with inserted word exemplar.
     '''
     new_wc = np.insert(space[word_cat][0:-1],0,word) # create new word cat array, shape (200,)
     new_wc = np.reshape(new_wc,(100,-1)) # reshape as (100,2)
@@ -101,7 +109,8 @@ def insert_word(space,word_cat,word):
 
 def rand_exemplar(i):
     '''
-    
+    Given a reference exemplar i, it adds some random noise.
+    Used for seeding the model.
 
     Parameters
     ----------
@@ -132,22 +141,22 @@ class Agent:
         #### Initialize word categories ####
         # init word cat 0 == 'ba'
         wc0_ref = np.array([25,25])
-        for i in range (11):
+        for i in range (9):
             self.space = insert_word(self.space, 0, rand_exemplar(wc0_ref))
         
         # init word cat 1 == 'pa'
         wc1_ref = np.array([75,25])
-        for i in range (11):
+        for i in range (9):
             self.space = insert_word(self.space, 1, rand_exemplar(wc1_ref))
         
         # init word cat 2 == 'bi'
         wc2_ref = np.array([25,75])
-        for i in range (11):
+        for i in range (9):
             self.space = insert_word(self.space, 2, rand_exemplar(wc2_ref))
         
         # init word cat 3 == 'pi'
         wc3_ref = np.array([75,75])
-        for i in range (11):
+        for i in range (9):
             self.space = insert_word(self.space, 3, rand_exemplar(wc3_ref))
         
         self.words = np.reshape(self.space,(self.space.shape[0]*self.space.shape[1],-1))
@@ -180,9 +189,10 @@ class Agent:
             #print('all 0')
             return self.choose_rword(wc_index)
         
-    def p_vec(self,word,wc_index,k = 0.2):
+    def p_vec_w(self,word,wc_index,k = 0.2):
         '''
-        Attempt to implement population vector formula from Wedel(2012), appendix, p.36, Eq 1.
+        Population vector formula from Wedel(2012), appendix, p.36, Eq 1.
+        Word level.
 
         Parameters
         ----------
@@ -194,7 +204,7 @@ class Agent:
         Returns
         -------
         p : np.array (2,)
-            population vector.
+            word level population vector.
 
         '''
         p_num = np.array([0,0])
@@ -206,21 +216,58 @@ class Agent:
         a_ind = 0
         for y in Y:
             #a_ind = np.where(Y==y)[0][0] # we want only the first row index of np.where
-            # print('a_ind: ',a_ind) # potential problem: this gives only index of first match (see zero example)
+            #print('a_ind: ',a_ind) # potential problem: this gives only index of first match (see zero example)
             
             w = self.activations[a_ind]
             p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
             p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
-            #print('p_num: ',p_num)
-            #print('p_den: ',p_den)
+            
             a_ind+=1
+        p = p_num/p_den
+        return p
+    
+    def p_vec_s(self,word,k = 0.2):
+        '''
+        Population vector formula from Wedel(2012), appendix, p.36, Eq 1.
+        Segment level.
+
+        Parameters
+        ----------
+        word : np.array (2,)
+            Production target x.
+        
+
+        Returns
+        -------
+        p : np.array (2,)
+            segment level population vector.
+
+        '''
+        p_num = np.array([0,0])
+        p_den = np.array([0,0])
+        x = word
+        for wc in self.space:
+            Y = wc
+            Y_flat = Y[Y != 0] # filtering out init exemplars [0,0]
+            Y = np.reshape(Y_flat,(-1,2))
+            a_ind = 0
+            for y in Y:
+                #alternate method to get the right activation value
+                #a_ind = np.where(Y==y)[0][0] # we want only the first row index of np.where
+                #print('a_ind: ',a_ind) # potential problem: this gives only index of first match (see zero example)
+                
+                w = self.activations[a_ind]
+                p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
+                p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
+    
+                a_ind+=1
         p = p_num/p_den
         return p
             
                 
     def produce(self,wc_index):
         prod_target = self.choose_rword(wc_index)
-        p_vector = self.p_vec(prod_target,wc_index)
+        p_vector = (9*self.p_vec_w(prod_target,wc_index)+self.p_vec_s(prod_target))/10
         noise = np.random.normal(0,3,1) # Random noise, mean 0 std 3, used during output creation
         noise = np.absolute(noise)
         p_noise = np.where(p_vector<50,p_vector+noise,p_vector-noise) # if smaller 50, add noise, else substract
@@ -269,12 +316,12 @@ def pp_loop(iterations,agent1,agent2):
         agent1.receive(agent2.produce(3))
         
         agent2.plot_space()
-    print(agent1.space)
+    #print(agent1.space)
     
     
         
 if __name__=='__main__':
     agent1 = Agent('Agent 1')
     agent2 = Agent('Agent 2')
-    #pp_loop(100,agent1,agent2)
+    pp_loop(10,agent1,agent2)
 
