@@ -26,7 +26,7 @@ def mink_r_metric(i,j,r=2):
     return np.sum(np.absolute(i-j))**1/r
 
 
-def eta_dist(i,j,k=1):
+def eta_dist(i,j,k=0.2):
     '''
     Eta distance, see "Attention, Similarity, and
     the Identification-Categorization Relationship" (p.2, Eq 4a&b, Nosofsky, 1986).
@@ -171,6 +171,26 @@ class Agent:
         #### Activations ####
         positions = np.arange(1,101,1,dtype=int)
         self.activations = np.exp(-0.2*positions)
+        self.activation_space = np.array([self.activations,self.activations,self.activations,self.activations])
+        
+    def get_activation(self,word):
+        '''
+        Parameters
+        ----------
+        word : np.array (2,)
+            word exemplar for which we want to retrieve activation.
+
+        Returns
+        -------
+        a: float
+            activation value.
+
+        '''
+        word_loc = np.where(self.space==word)
+        ind1 = word_loc[0][0]
+        ind2 = word_loc[1][0]
+        return self.activation_space[ind1][ind2]
+        
         
     def choose_rword(self,wc_index):
         #wc_index = random.randint(0, 3)# randomly select word cat index
@@ -189,6 +209,7 @@ class Agent:
             #print('all 0')
             return self.choose_rword(wc_index)
         
+    
     def p_vec_w(self,word,wc_index,k = 0.2):
         '''
         Population vector formula from Wedel(2012), appendix, p.36, Eq 1.
@@ -218,13 +239,14 @@ class Agent:
             #a_ind = np.where(Y==y)[0][0] # we want only the first row index of np.where
             #print('a_ind: ',a_ind) # potential problem: this gives only index of first match (see zero example)
             
-            w = self.activations[a_ind]
+            w = self.get_activation(y)
             p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
             p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
             
             a_ind+=1
         p = p_num/p_den
         return p
+    
     
     def p_vec_s(self,word,k = 0.2):
         '''
@@ -256,7 +278,7 @@ class Agent:
                 #a_ind = np.where(Y==y)[0][0] # we want only the first row index of np.where
                 #print('a_ind: ',a_ind) # potential problem: this gives only index of first match (see zero example)
                 
-                w = self.activations[a_ind]
+                w = self.get_activation(y)
                 p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
                 p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
     
@@ -360,5 +382,5 @@ def pp_loop(iterations,agent1,agent2):
 if __name__=='__main__':
     agent1 = Agent('Agent 1')
     agent2 = Agent('Agent 2')
-    pp_loop(400,agent1,agent2)
+    pp_loop(10,agent1,agent2)
 
