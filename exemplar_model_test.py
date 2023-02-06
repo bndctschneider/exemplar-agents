@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def mink_r_metric(i,j,r=2):
+def mink_r_metric(i,j,r=1):
     '''
     Minkowski r-metric, see "Attention, Similarity, and
     the Identification-Categorization Relationship" (p.2, Eq 3, Nosofsky, 1986)
@@ -23,7 +23,7 @@ def mink_r_metric(i,j,r=2):
     '''
     assert i.shape == (2,)
     assert j.shape == (2,)
-    return np.sum(np.absolute(i-j))**1/r
+    return np.sum(np.absolute(i-j)**r)**1/r
 
 
 def eta_dist(i,j,k=0.2):
@@ -53,35 +53,6 @@ def eta_dist(i,j,k=0.2):
     assert j.shape == (2,)
     return np.exp(-k*mink_r_metric(i,j))
 
-
-def word_cat_sim(i,word_cat):
-    '''
-    Numerator Eq 5, p.2, Nosokfsky(1986).
-    
-    MISSING: bias b_J from Nosofsky (1986).
-
-    Parameters
-    ----------
-    i : np.array (2,)
-        target exemplar i.
-    word_cat : np.array (100,2)
-        array with all exemplars of word category.
-
-    Returns
-    -------
-    float
-        summed similarity between target exemplar and word cat.
-
-    '''
-    # Ignore init exemplars [0,0]
-    # As list
-    #J = [list(j) for j in word_cat if j[0]!=0 and j[1]!=0]
-    
-    # As array
-    J_flat = word_cat[word_cat != 0]
-    J = np.reshape(J_flat,(-1,2))
-    
-    return np.sum(np.array([eta_dist(i,j) for j in J]))
 
 
 def insert_word(space,word_cat,word):
@@ -141,22 +112,22 @@ class Agent:
         #### Initialize word categories ####
         # init word cat 0 == 'ba'
         wc0_ref = np.array([25,25])
-        for i in range (9):
+        for i in range (100):
             self.space = insert_word(self.space, 0, rand_exemplar(wc0_ref))
         
         # init word cat 1 == 'pa'
         wc1_ref = np.array([75,25])
-        for i in range (9):
+        for i in range (100):
             self.space = insert_word(self.space, 1, rand_exemplar(wc1_ref))
         
         # init word cat 2 == 'bi'
         wc2_ref = np.array([25,75])
-        for i in range (9):
+        for i in range (100):
             self.space = insert_word(self.space, 2, rand_exemplar(wc2_ref))
         
         # init word cat 3 == 'pi'
         wc3_ref = np.array([75,75])
-        for i in range (9):
+        for i in range (100):
             self.space = insert_word(self.space, 3, rand_exemplar(wc3_ref))
         
         self.words = np.reshape(self.space,(self.space.shape[0]*self.space.shape[1],-1))
@@ -234,16 +205,13 @@ class Agent:
         Y = self.space[wc_index]
         Y_flat = Y[Y != 0] # filtering out init exemplars [0,0]
         Y = np.reshape(Y_flat,(-1,2))
-        a_ind = 0
         for y in Y:
-            #a_ind = np.where(Y==y)[0][0] # we want only the first row index of np.where
-            #print('a_ind: ',a_ind) # potential problem: this gives only index of first match (see zero example)
             
             w = self.get_activation(y)
             p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
             p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
             
-            a_ind+=1
+            
         p = p_num/p_den
         return p
     
@@ -272,17 +240,12 @@ class Agent:
             Y = wc
             Y_flat = Y[Y != 0] # filtering out init exemplars [0,0]
             Y = np.reshape(Y_flat,(-1,2))
-            a_ind = 0
             for y in Y:
-                #alternate method to get the right activation value
-                #a_ind = np.where(Y==y)[0][0] # we want only the first row index of np.where
-                #print('a_ind: ',a_ind) # potential problem: this gives only index of first match (see zero example)
                 
                 w = self.get_activation(y)
                 p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
                 p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
     
-                a_ind+=1
         p = p_num/p_den
         return p
     
@@ -324,20 +287,95 @@ class Agent:
         b = (p_vec-N/2)**2/G
         p_noise = np.where(p_vec<50,p_vec+b,p_vec-b) # if smaller 50, add noise, else substract
         return p_noise
+    
+    def word_cat_sim(self,i,word_cat):
+        '''
+        Numerator Eq 5, p.2, Nosokfsky(1986).
+        
+        MISSING: bias b_J from Nosofsky (1986).
+        
+        ADDITION: multiply by activation value from Wedel(2012)
+
+        Parameters
+        ----------
+        i : np.array (2,)
+            target exemplar i.
+        word_cat : np.array (100,2)
+            array with all exemplars of word category.
+
+        Returns
+        -------
+        float
+            summed similarity between target exemplar and word cat.
+
+        '''
+        # Ignore init exemplars [0,0]
+        # As list
+        #J = [list(j) for j in word_cat if j[0]!=0 and j[1]!=0]
+        
+        # As array
+        J_flat = word_cat[word_cat != 0]
+        J = np.reshape(J_flat,(-1,2))
+        a = np.array([self.get_activation(j) for j in J])
+        
+        return np.sum(a*np.array([eta_dist(i,j) for j in J]))
                 
     def produce(self,wc_index):
         prod_target = self.choose_rword(wc_index)
         p_vector = (9*self.p_vec_w(prod_target,wc_index)+self.p_vec_s(prod_target))/10
+        #print('p_vec_w: ',self.p_vec_w(prod_target, wc_index))
+        #print('p_vec_s: ',self.p_vec_s(prod_target))
+        #print('p_vector: ',p_vector)
+        
         #p_noise = self.default_b(p_vector)
         p_noise = self.wedel_b(p_vector)
+        #p_noise = p_vector
         return p_noise
+    
+    def aab_store1(self,max_sim):
+        r = np.random.random()
+        store = True if r<max_sim else False
+        return store
+    
+    def aab_store2(self,wc_probs): # this doesn't work because of 'underflow'
+        store_values = np.array([0,1]) # don't store or store
+        # probability of not being stored:
+        #r_max = (1/max(cat_sims))/cs_sum # reciprocal of max cat sim divided by sum of sim to all cats
+        #print('r_max:',r_max)
+        store_probs = np.array([1-np.max(wc_probs),np.max(wc_probs)])
+        store_val = np.random.choice(store_values,p=store_probs)
+        store = True if store_val==1 else False
+        return store
         
-    def receive(self,word):
-        cat_sims = np.array([word_cat_sim(word, wc) for wc in self.space])
+    def receive(self,word,aab=True):
+        cat_sims = np.array([self.word_cat_sim(word, wc) for wc in self.space])
+        max_cs = np.max(cat_sims)
+        
         cs_sum = np.sum(cat_sims) # Nosofsky(1986),p.2,Eq 5, denominator
+        
+        # Uncomment to see 'underflow' problem:
+        # max_cs/cs_sum will always be 1, because all other sims than the max one are so tiny
+        # that they aren't added on top of the max one in cs_sum,
+        # therefore max_cs == cs_sum
+        #print('cat_sims:',cat_sims)
+        #print('max cat sim: ',max_cs)
+        #print('cs_sum: ',cs_sum)
+        #print('max_cs/cs_sum',max_cs/cs_sum)
+        
         wc_probs = np.array([cs/cs_sum for cs in cat_sims])
         max_cat = np.argmax(wc_probs)
-        self.space = insert_word(self.space, max_cat, word)
+        max_cat_prob = np.max(wc_probs)
+        
+        # Anti ambiguity bias
+        if aab:
+            store= self.aab_store1(max_cat_prob)
+            #store= self.aab_store2(wc_probs)
+            if store:
+                self.space = insert_word(self.space, max_cat, word)
+            else:
+                print('not stored')
+        else:
+            self.space = insert_word(self.space, max_cat, word)
                 
     def plot_space(self,act_alpha=False): 
         fig, ax = plt.subplots()
@@ -382,5 +420,5 @@ def pp_loop(iterations,agent1,agent2):
 if __name__=='__main__':
     agent1 = Agent('Agent 1')
     agent2 = Agent('Agent 2')
-    pp_loop(10,agent1,agent2)
+    pp_loop(150,agent1,agent2)
 
