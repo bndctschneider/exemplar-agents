@@ -97,6 +97,7 @@ def rand_exemplar(i):
     assert i.shape == (2,)
     
     rvals = np.random.normal(scale=3.0, size=(2,))
+    #print(rvals)
     
     return i+rvals
     
@@ -130,9 +131,6 @@ class Agent:
         for i in range (100):
             self.space = insert_word(self.space, 3, rand_exemplar(wc3_ref))
         
-        self.words = np.reshape(self.space,(self.space.shape[0]*self.space.shape[1],-1))
-        self.segments_dim1 = self.space[:,:,0].flatten()
-        self.segments_dim2 = self.space[:,:,1].flatten()
         
         # self.space:
         # axis 0 = word cats
@@ -208,8 +206,10 @@ class Agent:
         for y in Y:
             
             w = self.get_activation(y)
-            p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
-            p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
+            #p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
+            p_num = p_num+(y*w*np.exp(-k*np.sqrt((x-y)**2))) # equiv to minkowski, eucl. dist. generalized to mult. dim.
+            #p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
+            p_den = p_den+(w*np.exp(-k*np.sqrt((x-y)**2)))
             
             
         p = p_num/p_den
@@ -243,8 +243,10 @@ class Agent:
             for y in Y:
                 
                 w = self.get_activation(y)
-                p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
-                p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
+                #p_num = p_num+(y*w*np.exp(-k*np.abs(x-y)))
+                p_num = p_num+(y*w*np.exp(-k*np.sqrt((x-y)**2)))
+                #p_den = p_den+(w*np.exp(-k*np.abs(x-y)))
+                p_den = p_den+(w*np.exp(-k*np.sqrt((x-y)**2)))
     
         p = p_num/p_den
         return p
@@ -285,6 +287,7 @@ class Agent:
 
         '''
         b = (p_vec-N/2)**2/G
+        #print('b: ',b)
         p_noise = np.where(p_vec<50,p_vec+b,p_vec-b) # if smaller 50, add noise, else substract
         return p_noise
     
@@ -318,7 +321,10 @@ class Agent:
         J = np.reshape(J_flat,(-1,2))
         a = np.array([self.get_activation(j) for j in J])
         
-        return np.sum(a*np.array([eta_dist(i,j) for j in J]))
+        #return np.sum(a*np.array([eta_dist(i,j) for j in J]))
+        
+        # Try to use linalg.norm instead of our own function
+        return np.sum(a*np.array([np.exp(-0.2*np.linalg.norm(i-j)) for j in J]))
                 
     def produce(self,wc_index):
         prod_target = self.choose_rword(wc_index)
@@ -327,9 +333,10 @@ class Agent:
         #print('p_vec_s: ',self.p_vec_s(prod_target))
         #print('p_vector: ',p_vector)
         
-        #p_noise = self.default_b(p_vector)
-        p_noise = self.wedel_b(p_vector)
+        p_noise = self.default_b(p_vector)
+        #p_noise = self.wedel_b(p_vector)
         #p_noise = p_vector
+        #print('p_noise: ',p_noise)
         return p_noise
     
     def aab_store1(self,max_sim):
@@ -347,7 +354,7 @@ class Agent:
         store = True if store_val==1 else False
         return store
         
-    def receive(self,word,aab=True):
+    def receive(self,word,aab=False):
         cat_sims = np.array([self.word_cat_sim(word, wc) for wc in self.space])
         max_cs = np.max(cat_sims)
         
@@ -414,8 +421,90 @@ def pp_loop(iterations,agent1,agent2):
         
         agent2.plot_space()
     #print(agent1.space)
+
+
+
+
     
-    
+#####################
+#### Toy example ####
+#####################
+
+
+
+#### Production ####
+
+# y11 = word cat 1, word 1
+
+y11 = np.array([25.4504691 , 23.84565597])
+y12 = np.array([17.33747529, 23.65302584])
+y21 = np.array([76.26520077, 71.8999117 ])
+y22 = np.array([72.09360126, 74.11904537])
+
+a1 = 0.82
+a2 = 0.67
+
+## p_word ##
+# numerator terms
+n1 = y11*a1*np.exp(-0.2*np.sqrt((y11-y11)**2))
+n2 = y12*a2*np.exp(-0.2*np.sqrt((y11-y12)**2))
+
+# use linalg.norm instead to get single value for exp term?
+#n1 = y11*a1*np.exp(-0.2*np.linalg.norm(y11-y11))
+#n2 = y12*a2*np.exp(-0.2*np.linalg.norm(y11-y12))
+
+# denominator terms
+d1 = a1*np.exp(-0.2*np.sqrt((y11-y11)**2))
+d2 = a2*np.exp(-0.2*np.sqrt((y11-y12)**2))
+
+
+# use linalg.norm?
+#d1 = a1*np.exp(-0.2*np.linalg.norm(y11-y11))
+#d2 = a2*np.exp(-0.2*np.linalg.norm(y11-y12))
+
+
+## p_seg ##
+# additional numerator terms
+n3 = y21*a1*np.exp(-0.2*np.sqrt((y11-y21)**2))
+n4 = y22*a2*np.exp(-0.2*np.sqrt((y11-y22)**2))
+
+# linalg.norm version
+#n3 = y21*a1*np.exp(-0.2*np.sqrt((y11-y21)**2))
+#n4 = y22*a2*np.exp(-0.2*np.sqrt((y11-y22)**2))
+
+
+# additional denominator terms
+d3 = a1*np.exp(-0.2*np.sqrt((y11-y21)**2))
+d4 = a1*np.exp(-0.2*np.sqrt((y11-y22)**2))
+
+
+# linalg.norm version
+#d3 = a1*np.exp(-0.2*np.linalg.norm(y11-y21))
+#d4 = a1*np.exp(-0.2*np.linalg.norm(y11-y22))
+
+
+p_word = (n1+n2)/(d1+d2)
+p_seg = (n1+n2+n3+n4)/(d1+d2+d3+d4)
+p = (9*p_word+p_seg)/10
+
+b_default = 1.82 # just randomly generated value
+b_wedel = ((p-100/2)**2) / 5000
+
+# we can simply add here because we know for our example that both dims are < 50
+p_noise_default = p + b_default
+p_noise_wedel = p + b_wedel
+
+
+#### Reception ####
+sim_wc1 = a1*np.exp(-0.2*np.sqrt(((p_noise_wedel[0]-y11[0])**2+(p_noise_wedel[1]-y11[1])**2)))+a2*np.exp(-0.2*np.sqrt(((p_noise_wedel[0]-y12[0])**2+(p_noise_wedel[1]-y12[1])**2)))
+sim_wc2 = a1*np.exp(-0.2*np.sqrt(((p_noise_wedel[0]-y21[0])**2+(p_noise_wedel[1]-y21[1])**2)))+a2*np.exp(-0.2*np.sqrt(((p_noise_wedel[0]-y22[0])**2+(p_noise_wedel[1]-y22[1])**2)))
+
+prob_wc1 = sim_wc1/(sim_wc1+sim_wc2)
+prob_wc2 = sim_wc2/(sim_wc1+sim_wc2)
+
+
+
+
         
 if __name__=='__main__':
     agent1 = Agent('Agent 1')
