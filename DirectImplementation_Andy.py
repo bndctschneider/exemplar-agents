@@ -40,7 +40,7 @@ randstart=0
 wordlength=2
 
 # number of cycles
-cyctot=5000
+cyctot=4001
 
 ## size of the field
 dimension=100
@@ -77,7 +77,7 @@ soundreversion=1 # ???
 
 wordreversion=1 # ???
 
-catcomp=0 # == anti ambiguity bias
+catcomp=1 # == anti ambiguity bias
 
 lexdiffusion=0 # ???
 
@@ -270,7 +270,8 @@ def plot_space(agent,cycle):
         ax.scatter(x,y, color=colors[i],marker=markers[i])
     name = 'Listener_Cycle_'+str(cycle)
     plt.title(name)
-    #plt.savefig(name+'.png')
+    if cycle%1000 == 0:
+        plt.savefig('Output/'+name+'.png')
     plt.show()
 
 
@@ -332,14 +333,15 @@ for batch in range(0,batchnum):
     Csdrun=0  # ???
     Csdruntot=0  # ???
     Csdavgtot=0  # ???
-    
+
+listener=agents[random.randint(0,1)]
 
 ## Production-perception loop
 for cyc in range(0,cyctot):
+    if cyc%25 == 0:
+        plot_space(listener, cyc)
     for speaker in agents:
         listener=agents[random.randint(0,1)] # Andy randomly chooses the listener
-        if cyc%25 == 0:
-            plot_space(listener, cyc)
         
         for i in range(0,len(lexemes)):  # i is the lexeme being produced == word cat
            categorization(noise(chooseoutput(speaker,i)))
