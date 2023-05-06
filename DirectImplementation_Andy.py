@@ -39,9 +39,6 @@ randstart=0
 ## How many 'segments' a word has
 wordlength=2
 
-# number of cycles
-cyctot=4001
-
 ## size of the field
 dimension=100
 
@@ -53,11 +50,18 @@ splitdemo=0 # ???
 # stdev is used in initializing the exemplar clouds to determine how wide the cloud is
 stdev=3.8
 
+
+# Unclear why these numbers were chosen
 strongbias= 0.5 # ???
 
 biasfact=1000000 # ???
 
+
+# This isn't a traditional decay formula 
 decay=exnum/5 # ??? will be 20 when doing 100 exemplars
+
+
+
 
 ## Factor determining the range over which attraction/reversion occurs
 
@@ -70,6 +74,10 @@ Sspread=-0.2
 
 ## Scaling factor determining the range over which category similarity is calculated
 catfactor=-0.2
+
+
+
+
 
 ## Settings for whether particular parts of the simulation are operative
 
@@ -97,8 +105,30 @@ lexdiffusion=0 # ???
 #### Choose output ####
 #######################
 def chooseoutput(speaker, i):
-    #global outword,wordreversion,speaker,splitdemo,Wspread,totsim,soundreversion,Sspread,wordlength,decay,
+    """
+    Variables utilized within this:
+    outword
+    wordreversion
+    speaker
+    splitdemo
+    Wspread
+    totsim
+    soundreversion
+    Sspread
+    wordlength
+    decay
     
+    Contingencies:
+    None
+
+    Function output:
+    outword
+
+    Effect:
+    To take the speaker and to edit the outword based on either word based shift or sound based shift. 
+
+    """
+
     word_cat = speaker[i] # a
     
     inproportions=[] # == activations
@@ -183,7 +213,29 @@ def chooseoutput(speaker, i):
 ###############
 
 def noise(outword):
-    #global outword,dimension,splitdemo,strongbias,rn,lexdiffusion,biasfact,err,stdev,cyc
+    """
+    Variables utilized in this:
+    outword
+    dimension
+    splitdemo
+    strongbias
+    rn
+    lexdiffusion
+    biasfact
+    err
+    stdev
+    cyc
+
+    Contingencies:
+    chooseoutput
+
+    Function output:
+    outword
+
+    Effect:
+    To add noise to the outword.
+
+    """
 
     for a in range(0,len(outword)):
       rn=0
@@ -335,6 +387,10 @@ for batch in range(0,batchnum):
     Csdavgtot=0  # ???
 
 listener=agents[random.randint(0,1)]
+
+
+# number of cycles
+cyctot=4001
 
 ## Production-perception loop
 for cyc in range(0,cyctot):
